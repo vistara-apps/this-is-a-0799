@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Upload, Wand2, Share2, ArrowLeft, Download, Instagram, Play } from 'lucide-react';
+import { Upload, Wand2, Share2, ArrowLeft, Download, Instagram, Play, CheckSquare } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { ImageUploader } from './ui/ImageUploader';
 import { AdPreview } from './ui/AdPreview';
 import { PaymentModal } from './ui/PaymentModal';
+import { SocialConnect } from './ui/SocialConnect';
 import { useApp } from '../context/AppContext';
 import { useOpenAI } from '../hooks/useOpenAI';
 
@@ -18,6 +19,7 @@ export const AdCreator = ({ setCurrentView }) => {
   const [productDescription, setProductDescription] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [generatedAds, setGeneratedAds] = useState([]);
+  const [selectedAds, setSelectedAds] = useState([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const handleImageUpload = (file) => {
@@ -47,6 +49,22 @@ export const AdCreator = ({ setCurrentView }) => {
 
   const handleSocialConnect = (platform) => {
     alert(`Connecting to ${platform}... (Demo mode)`);
+  };
+
+  const handleAdSelection = (ad) => {
+    setSelectedAds(prev => {
+      const isSelected = prev.some(selectedAd => selectedAd.creativeId === ad.creativeId);
+      if (isSelected) {
+        return prev.filter(selectedAd => selectedAd.creativeId !== ad.creativeId);
+      } else {
+        return [...prev, ad];
+      }
+    });
+  };
+
+  const handleSocialPost = (platform, ad, status) => {
+    console.log(`Posted to ${platform}:`, ad, status);
+    // You could update the ad's performance metrics here
   };
 
   const renderStep = () => {
@@ -153,35 +171,66 @@ export const AdCreator = ({ setCurrentView }) => {
               </p>
             </div>
             
+            {/* Ad Selection */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {generatedAds.map((ad, index) => (
-                <AdPreview key={index} ad={ad} />
-              ))}
+              {generatedAds.map((ad, index) => {
+                const isSelected = selectedAds.some(selectedAd => selectedAd.creativeId === ad.creativeId);
+                return (
+                  <div key={index} className="relative">
+                    <div 
+                      className={`cursor-pointer transition-all ${
+                        isSelected ? 'ring-2 ring-purple-400 ring-offset-2 ring-offset-transparent' : ''
+                      }`}
+                      onClick={() => handleAdSelection(ad)}
+                    >
+                      <AdPreview ad={ad} />
+                    </div>
+                    
+                    {/* Selection Indicator */}
+                    <div className="absolute top-2 right-2">
+                      <div 
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isSelected 
+                            ? 'bg-purple-500 border-purple-500' 
+                            : 'border-white/40 bg-black/20'
+                        }`}
+                      >
+                        {isSelected && <CheckSquare className="w-4 h-4 text-white" />}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            
-            <div className="max-w-2xl mx-auto">
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Post to Social Media</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {/* Selection Summary */}
+            {selectedAds.length > 0 && (
+              <Card className="p-4 bg-purple-400/10 border-purple-400/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <CheckSquare className="w-5 h-5 text-purple-400" />
+                    <span className="text-white font-medium">
+                      {selectedAds.length} ad{selectedAds.length !== 1 ? 's' : ''} selected
+                    </span>
+                  </div>
                   <Button
                     variant="outline"
-                    onClick={() => handleSocialConnect('Instagram')}
-                    className="flex items-center justify-center space-x-2"
+                    size="sm"
+                    onClick={() => setSelectedAds([])}
                   >
-                    <Instagram className="w-5 h-5" />
-                    <span>Connect Instagram</span>
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => handleSocialConnect('TikTok')}
-                    className="flex items-center justify-center space-x-2"
-                  >
-                    <Play className="w-5 h-5" />
-                    <span>Connect TikTok</span>
+                    Clear Selection
                   </Button>
                 </div>
               </Card>
+            )}
+            
+            {/* Social Media Integration */}
+            <div className="max-w-4xl mx-auto">
+              <SocialConnect 
+                selectedAds={selectedAds}
+                onConnect={handleSocialConnect}
+                onPost={handleSocialPost}
+              />
             </div>
             
             <div className="flex justify-between max-w-2xl mx-auto">
@@ -192,12 +241,21 @@ export const AdCreator = ({ setCurrentView }) => {
                 Create Another
               </Button>
               
-              <Button 
-                onClick={() => setCurrentView('dashboard')}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-              >
-                View Dashboard
-              </Button>
+              <div className="flex space-x-3">
+                <Button 
+                  variant="outline"
+                  onClick={() => setCurrentView('analytics')}
+                >
+                  View Analytics
+                </Button>
+                
+                <Button 
+                  onClick={() => setCurrentView('dashboard')}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                >
+                  View Dashboard
+                </Button>
+              </div>
             </div>
           </div>
         );
